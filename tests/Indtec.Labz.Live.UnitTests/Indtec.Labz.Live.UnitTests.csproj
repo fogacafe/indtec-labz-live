@@ -2,6 +2,7 @@
   <PropertyGroup><IsPackable>false</IsPackable></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Indtec.Labz.Live.Application/Indtec.Labz.Live.Application.csproj" />
+    <ProjectReference Include="../../src/Indtec.Labz.Live.ScheduleShow/Indtec.Labz.Live.ScheduleShow.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2"><PrivateAssets>all</PrivateAssets></PackageReference>
