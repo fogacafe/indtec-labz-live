@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Indtec.Labz.Live.Domain/Indtec.Labz.Live.Domain.csproj" />
+  </ItemGroup>
+</Project>
