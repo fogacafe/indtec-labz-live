@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Indtec.Labz.Live.Application/Indtec.Labz.Live.Application.csproj" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.*" />
+    <PackageReference Include="AWSSDK.SimpleNotificationService" Version="4.*" />
+  </ItemGroup>
+</Project>
