@@ -15,9 +15,11 @@ public sealed class ScheduleShowsHandler(
 
         foreach (var message in command.Messages)
         {
+            var started = false;
+
             try
             {
-                var started = await idempotencyStore.TryStartAsync(message.MessageId, cancellationToken);
+                started = await idempotencyStore.TryStartAsync(message.MessageId, cancellationToken);
                 if (!started) continue;
 
                 var integrationEvent = new ShowScheduled(
@@ -32,6 +34,9 @@ public sealed class ScheduleShowsHandler(
             }
             catch
             {
+                if (started)
+                    await idempotencyStore.AbandonAsync(message.MessageId, cancellationToken);
+
                 failures.Add(message.MessageId);
             }
         }
