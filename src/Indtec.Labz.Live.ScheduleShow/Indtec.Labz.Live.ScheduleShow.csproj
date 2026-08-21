@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Indtec.Labz.Live.Application/Indtec.Labz.Live.Application.csproj" />
+    <ProjectReference Include="../Indtec.Labz.Live.Infrastructure/Indtec.Labz.Live.Infrastructure.csproj" />
+    <ProjectReference Include="../Indtec.Labz.Live.Lambda.Core/Indtec.Labz.Live.Lambda.Core.csproj" />
+    <PackageReference Include="Amazon.Lambda.SQSEvents" Version="2.2.0" />
+    <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.4" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+  </ItemGroup>
+</Project>
