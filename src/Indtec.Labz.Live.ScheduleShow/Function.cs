@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Amazon.DynamoDBv2;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
@@ -35,22 +34,7 @@ public sealed class Function : BaseLambda<SQSEvent, ScheduleShowsCommand, SQSBat
     protected override IServiceProvider Services => RootProvider;
 
     protected override ScheduleShowsCommand Map(SQSEvent request, ILambdaContext context)
-    {
-        var messages = request.Records.Select(record =>
-        {
-            var payload = JsonSerializer.Deserialize<ScheduleShowPayload>(record.Body)
-                ?? throw new InvalidOperationException($"Message {record.MessageId} has an invalid body.");
-
-            return new ScheduleShowMessage(
-                record.MessageId,
-                payload.ShowId,
-                payload.Artist,
-                payload.Venue,
-                payload.StartsAt);
-        }).ToArray();
-
-        return new ScheduleShowsCommand(messages);
-    }
+        => SqsEventMapper.Map(request);
 
     protected override async Task<SQSBatchResponse> ExecuteAsync(
         IServiceProvider services,
@@ -65,6 +49,4 @@ public sealed class Function : BaseLambda<SQSEvent, ScheduleShowsCommand, SQSBat
             BatchItemFailures = failures.Select(messageId => new SQSBatchResponse.BatchItemFailure { ItemIdentifier = messageId }).ToList()
         };
     }
-
-    private sealed record ScheduleShowPayload(Guid ShowId, string Artist, string Venue, DateTimeOffset StartsAt);
 }
