@@ -1,0 +1,137 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: INDTEC LABZ / 002 - Live event-driven foundation
+
+Parameters:
+  LambdaCodeS3Bucket:
+    Type: String
+  LambdaCodeS3Key:
+    Type: String
+  EnvironmentName:
+    Type: String
+    Default: dev
+    AllowedPattern: '[a-z0-9-]+'
+  LambdaMemorySize:
+    Type: Number
+    Default: 512
+  LambdaTimeoutSeconds:
+    Type: Number
+    Default: 30
+  MaxReceiveCount:
+    Type: Number
+    Default: 3
+
+Resources:
+  ShowScheduledTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub indtec-labz-live-show-scheduled-${EnvironmentName}
+
+  ScheduleShowDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub indtec-labz-live-schedule-show-dlq-${EnvironmentName}
+      MessageRetentionPeriod: 1209600
+
+  ScheduleShowQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub indtec-labz-live-schedule-show-${EnvironmentName}
+      VisibilityTimeout: 120
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ScheduleShowDeadLetterQueue.Arn
+        maxReceiveCount: !Ref MaxReceiveCount
+
+  IdempotencyTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub indtec-labz-live-idempotency-${EnvironmentName}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+
+  ScheduleShowLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: live-runtime
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource: !GetAtt ScheduleShowQueue.Arn
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:DeleteItem
+                Resource: !GetAtt IdempotencyTable.Arn
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref ShowScheduledTopic
+
+  ScheduleShowFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub indtec-labz-live-schedule-show-${EnvironmentName}
+      Runtime: dotnet10
+      Architectures:
+        - arm64
+      Handler: Indtec.Labz.Live.ScheduleShow::Indtec.Labz.Live.ScheduleShow.Function::FunctionHandler
+      Role: !GetAtt ScheduleShowLambdaRole.Arn
+      MemorySize: !Ref LambdaMemorySize
+      Timeout: !Ref LambdaTimeoutSeconds
+      Code:
+        S3Bucket: !Ref LambdaCodeS3Bucket
+        S3Key: !Ref LambdaCodeS3Key
+      Environment:
+        Variables:
+          IDEMPOTENCY_TABLE: !Ref IdempotencyTable
+          SHOW_SCHEDULED_TOPIC_ARN: !Ref ShowScheduledTopic
+
+  ScheduleShowEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt ScheduleShowQueue.Arn
+      FunctionName: !Ref ScheduleShowFunction
+      BatchSize: 10
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      Enabled: true
+
+Outputs:
+  ScheduleShowQueueUrl:
+    Value: !Ref ScheduleShowQueue
+  ScheduleShowDeadLetterQueueUrl:
+    Value: !Ref ScheduleShowDeadLetterQueue
+  ShowScheduledTopicArn:
+    Value: !Ref ShowScheduledTopic
+  IdempotencyTableName:
+    Value: !Ref IdempotencyTable
+  ScheduleShowFunctionName:
+    Value: !Ref ScheduleShowFunction
